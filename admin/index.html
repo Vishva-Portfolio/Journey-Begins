@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Admin — Journey Begin</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Jost:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <div class="login-logo"><span class="mark">◈</span> JOURNEY<em>BEGIN</em></div>
+    <h2>Admin Sign In</h2>
+
+    <div class="login-error hidden" id="loginError"></div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="loginEmail">Email</label>
+        <input type="email" id="loginEmail" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="loginPassword">Password</label>
+        <input type="password" id="loginPassword" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary" id="loginSubmit">Sign In</button>
+    </form>
+
+    <p class="login-note">This admin area manages the content shown on the Journey Begin site. Access is restricted to authorized accounts only.</p>
+  </div>
+</div>
+
+<!-- ============ DASHBOARD ============ -->
+<div class="dash hidden" id="dashWrap">
+  <aside class="sidebar">
+    <div class="login-logo"><span class="mark">◈</span> JOURNEY<em>BEGIN</em></div>
+    <nav class="side-nav" id="sideNav">
+      <button class="side-link active" data-section="manga">Manga</button>
+      <button class="side-link" data-section="chapters">Chapters</button>
+      <button class="side-link" data-section="characters">Characters</button>
+      <button class="side-link" data-section="locations">World Map</button>
+      <button class="side-link" data-section="lore">Lore</button>
+      <button class="side-link" data-section="gallery">Gallery</button>
+      <button class="side-link" data-section="news">News</button>
+      <button class="side-link" data-section="social">Social Media</button>
+    </nav>
+    <div class="side-foot">
+      <div class="side-user" id="sideUserEmail"></div>
+      <a href="../index.html" class="btn btn-sm" style="width:100%; margin-bottom:0.5rem; text-align:center; text-decoration:none;">View Site</a>
+      <button class="btn btn-sm btn-danger" id="logoutBtn" style="width:100%;">Sign Out</button>
+    </div>
+  </aside>
+
+  <main class="main" id="mainPanel">
+    <!-- injected by admin.js -->
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Firebase (compat SDK) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="../firebase-config.js"></script>
+
+<!-- jsPDF — used by the Chapters screen's "Download PDF" button to bundle
+     a chapter's page images into a single downloadable PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script src="admin.js"></script>
+</body>
+</html>
