@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Journey Begin — Eternity of Crystal</title>
+<meta name="description" content="Journey Begin — a manga discovery platform. Every story begins with a journey.">
+
+<!-- Fonts: Cinzel for fantasy display, Jost for body, JetBrains Mono for labels/data -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Jost:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="motion.css">
+</head>
+<body>
+
+<!-- ============================================================
+     CINEMATIC LOADER (removed automatically by motion.js after intro plays;
+     also has a pure-CSS fallback timeout in motion.css in case JS is blocked)
+============================================================= -->
+<div id="cinematicLoader" class="cinematic-loader" aria-hidden="true">
+  <div class="loader-bg"></div>
+  <div class="loader-content">
+    <div class="loader-mark">◈</div>
+    <div class="loader-title">JOURNEY<em>BEGIN</em></div>
+    <div class="loader-bar"><span class="loader-bar-fill" id="loaderBarFill"></span></div>
+    <div class="loader-pct" id="loaderPct">0%</div>
+  </div>
+</div>
+
+<!-- ============ AMBIENT BACKDROP (CSS-only aurora wash + vignette + grain — always
+     present beneath the 3D canvas, so the site still looks rich and cinematic
+     even before WebGL/Three.js finishes loading, and adds extra color depth
+     underneath the particle layer once it does) ============ -->
+<div class="ambient-backdrop" aria-hidden="true">
+  <span class="ambient-sheen"></span>
+  <span class="ambient-blob ambient-blob-1"></span>
+  <span class="ambient-blob ambient-blob-2"></span>
+  <span class="ambient-blob ambient-blob-3"></span>
+  <span class="ambient-blob ambient-blob-4"></span>
+  <span class="ambient-blob ambient-blob-5"></span>
+  <span class="ambient-grid"></span>
+</div>
+<div class="ambient-grain" aria-hidden="true"></div>
+<div class="ambient-vignette" aria-hidden="true"></div>
+
+<!-- ============ 3D MOTION BACKGROUND (Three.js canvas, fixed behind entire site) ============ -->
+<canvas id="bgCanvas3D" class="bg-canvas-3d" aria-hidden="true"></canvas>
+
+<!-- ============ FRACTURE OVERLAY (decorative crystal-crack lines, fixed) ============ -->
+<svg class="fracture-overlay" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"></svg>
+
+<!-- ============ CUSTOM CURSOR / SCROLL PROGRESS ============ -->
+<div class="scroll-progress" id="scrollProgress"></div>
+
+<!-- ============================================================
+     NAVIGATION
+============================================================= -->
+<header class="site-nav" id="siteNav">
+  <div class="nav-inner">
+    <a href="#home" class="logo" data-nav-link>
+      <span class="logo-mark">◈</span>
+      <span class="logo-text">JOURNEY<em>BEGIN</em></span>
+    </a>
+
+    <nav class="nav-links" id="navLinks">
+      <a href="#home" class="nav-link active" data-nav-link>Home</a>
+      <a href="#manga" class="nav-link" data-nav-link>Manga</a>
+      <a href="#discover" class="nav-link" data-nav-link>Discover</a>
+      <a href="#characters" class="nav-link" data-nav-link>Characters</a>
+      <a href="#world" class="nav-link" data-nav-link>Worlds</a>
+      <a href="#news" class="nav-link" data-nav-link>News</a>
+      <a href="#reviews" class="nav-link" data-nav-link>Reviews</a>
+    </nav>
+
+    <div class="nav-actions">
+      <button class="icon-btn" id="searchToggle" aria-label="Search" title="Search">
+        <svg viewBox="0 0 24 24"><path d="M10.5 3a7.5 7.5 0 015.94 12.06l4.75 4.75-1.4 1.4-4.75-4.75A7.5 7.5 0 1110.5 3zm0 2a5.5 5.5 0 100 11 5.5 5.5 0 000-11z"/></svg>
+      </button>
+      <button class="icon-btn" id="bookmarkToggle" aria-label="Bookmarks" title="Bookmarks">
+        <svg viewBox="0 0 24 24"><path d="M6 2h12a1 1 0 011 1v18l-7-4.2L5 21V3a1 1 0 011-1z"/></svg>
+        <span class="badge" id="bookmarkCount">0</span>
+      </button>
+      <button class="icon-btn account-btn" id="accountToggle" aria-label="Account" title="Account">
+        <svg class="account-icon-default" id="accountIconDefault" viewBox="0 0 24 24"><path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-4.4 0-8 2.2-8 5v2h16v-2c0-2.8-3.6-5-8-5z"/></svg>
+        <span class="nav-avatar hidden" id="navAvatar"></span>
+      </button>
+      <button class="hamburger" id="hamburgerBtn" aria-label="Menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================
+     SEARCH OVERLAY
+============================================================= -->
+<div class="search-overlay" id="searchOverlay">
+  <div class="search-panel">
+    <div class="search-input-row">
+      <svg viewBox="0 0 24 24" class="search-icon"><path d="M10.5 3a7.5 7.5 0 015.94 12.06l4.75 4.75-1.4 1.4-4.75-4.75A7.5 7.5 0 1110.5 3zm0 2a5.5 5.5 0 100 11 5.5 5.5 0 000-11z"/></svg>
+      <input type="text" id="searchInput" placeholder="Search manga, characters, chapters, locations, lore, news..." autocomplete="off">
+      <button class="icon-btn" id="searchClose" aria-label="Close search">
+        <svg viewBox="0 0 24 24"><path d="M6.4 4.98L12 10.59l5.6-5.6 1.4 1.4-5.6 5.6 5.6 5.6-1.4 1.4-5.6-5.6-5.6 5.6-1.4-1.4 5.6-5.6-5.6-5.6z"/></svg>
+      </button>
+    </div>
+    <div class="search-results" id="searchResults">
+      <p class="search-hint">Try “Felix”, “Chapter 2”, “Kingdom”, or “Crystal”.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     BOOKMARK PANEL
+============================================================= -->
+<div class="bookmark-overlay" id="bookmarkOverlay">
+  <div class="bookmark-panel">
+    <div class="bookmark-head">
+      <h3>Your Bookmarks</h3>
+      <button class="icon-btn" id="bookmarkClose" aria-label="Close bookmarks">
+        <svg viewBox="0 0 24 24"><path d="M6.4 4.98L12 10.59l5.6-5.6 1.4 1.4-5.6 5.6 5.6 5.6-1.4 1.4-5.6-5.6-5.6 5.6-1.4-1.4 5.6-5.6-5.6-5.6z"/></svg>
+      </button>
+    </div>
+    <div class="bookmark-list" id="bookmarkList">
+      <p class="empty-note">No bookmarks yet. Tap the crystal icon on any manga or chapter to save it here.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ACCOUNT OVERLAY (reader sign in / register / profile)
+============================================================= -->
+<div class="bookmark-overlay" id="accountOverlay">
+  <div class="bookmark-panel account-panel">
+    <div class="bookmark-head">
+      <h3>Account</h3>
+      <button class="icon-btn" id="accountClose" aria-label="Close account panel">
+        <svg viewBox="0 0 24 24"><path d="M6.4 4.98L12 10.59l5.6-5.6 1.4 1.4-5.6 5.6 5.6 5.6-1.4 1.4-5.6-5.6-5.6 5.6-1.4-1.4 5.6-5.6-5.6-5.6z"/></svg>
+      </button>
+    </div>
+
+    <!-- Mobile-only quick nav (hamburger menu is hidden on mobile; its links live here instead) -->
+    <nav class="account-mobile-nav" id="accountMobileNav">
+      <a href="#home" class="nav-link" data-nav-link>Home</a>
+      <a href="#manga" class="nav-link" data-nav-link>Manga</a>
+      <a href="#discover" class="nav-link" data-nav-link>Discover</a>
+      <a href="#characters" class="nav-link" data-nav-link>Characters</a>
+      <a href="#world" class="nav-link" data-nav-link>Worlds</a>
+      <a href="#news" class="nav-link" data-nav-link>News</a>
+      <a href="#reviews" class="nav-link" data-nav-link>Reviews</a>
+    </nav>
+
+    <!-- Logged-out view -->
+    <div id="accountAuthView">
+      <div class="account-tabs">
+        <button class="account-tab active" data-account-tab="login">Sign In</button>
+        <button class="account-tab" data-account-tab="register">Create Account</button>
+      </div>
+
+      <div class="account-error hidden" id="accountError"></div>
+
+      <form id="accountLoginForm" class="account-form">
+        <div class="field">
+          <label for="acctLoginEmail">Email</label>
+          <input type="email" id="acctLoginEmail" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="acctLoginPassword">Password</label>
+          <div class="password-field">
+            <input type="password" id="acctLoginPassword" autocomplete="current-password" required>
+            <button type="button" class="password-eye" data-toggle-password="acctLoginPassword" aria-label="Show password">
+              <svg viewBox="0 0 24 24" class="eye-icon"><g class="eye-open"><path d="M12 5C5.5 5 2 12 2 12s3.5 7 10 7 10-7 10-7-3.5-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></g><g class="eye-closed"><path d="M3.3 2.3l18.4 18.4-1.4 1.4-3-3C15.7 19.7 14 20 12 20 5.5 20 2 13 2 13s1.4-2.8 4.2-4.9L1.9 3.7l1.4-1.4zM12 8a4 4 0 013.9 4.9L9.1 6.1C9.9 8.1 10.9 8 12 8zm-4.6 1.7C6.5 10.6 5.7 11.7 5 12.9c.9 1.5 3.7 5.1 7 5.1 1 0 1.9-.2 2.7-.5l-1.9-1.9a4 4 0 01-4.9-4.9l-1.5-1z"/></g></svg>
+            </button>
+          </div>
+        </div>
+        <button type="submit" class="acct-btn-primary">Sign In</button>
+      </form>
+
+      <form id="accountRegisterForm" class="account-form hidden">
+        <div class="field avatar-upload-field">
+          <label>Profile Picture (optional)</label>
+          <div class="avatar-upload-row">
+            <div class="avatar-upload-preview" id="acctRegAvatarPreview">?</div>
+            <div class="avatar-upload-actions">
+              <label class="avatar-upload-btn" for="acctRegAvatarInput">Choose Photo</label>
+              <input type="file" id="acctRegAvatarInput" accept="image/*" hidden>
+              <button type="button" class="avatar-upload-clear hidden" id="acctRegAvatarClear">Remove</button>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label for="acctRegName">Display Name</label>
+          <input type="text" id="acctRegName" autocomplete="name" required maxlength="40">
+        </div>
+        <div class="field">
+          <label for="acctRegEmail">Email</label>
+          <input type="email" id="acctRegEmail" autocomplete="username" required>
+        </div>
+        <div class="field">
+          <label for="acctRegPassword">Password</label>
+          <div class="password-field">
+            <input type="password" id="acctRegPassword" autocomplete="new-password" required minlength="6">
+            <button type="button" class="password-eye" data-toggle-password="acctRegPassword" aria-label="Show password">
+              <svg viewBox="0 0 24 24" class="eye-icon"><g class="eye-open"><path d="M12 5C5.5 5 2 12 2 12s3.5 7 10 7 10-7 10-7-3.5-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></g><g class="eye-closed"><path d="M3.3 2.3l18.4 18.4-1.4 1.4-3-3C15.7 19.7 14 20 12 20 5.5 20 2 13 2 13s1.4-2.8 4.2-4.9L1.9 3.7l1.4-1.4zM12 8a4 4 0 013.9 4.9L9.1 6.1C9.9 8.1 10.9 8 12 8zm-4.6 1.7C6.5 10.6 5.7 11.7 5 12.9c.9 1.5 3.7 5.1 7 5.1 1 0 1.9-.2 2.7-.5l-1.9-1.9a4 4 0 01-4.9-4.9l-1.5-1z"/></g></svg>
+            </button>
+          </div>
+          <div class="account-hint">At least 6 characters.</div>
+        </div>
+        <button type="submit" class="acct-btn-primary">Create Account</button>
+      </form>
+    </div>
+
+    <!-- Logged-in view -->
+    <div id="accountProfileView" class="hidden">
+      <div class="account-profile">
+        <div class="account-avatar" id="accountAvatar">?</div>
+        <label class="avatar-change-btn" for="acctProfileAvatarInput">Change Photo</label>
+        <input type="file" id="acctProfileAvatarInput" accept="image/*" hidden>
+        <div class="account-name" id="accountName">—</div>
+        <div class="account-email" id="accountEmail">—</div>
+      </div>
+
+      <div class="account-info-row">
+        <span class="account-info-label">Password</span>
+        <span class="account-info-value">••••••••</span>
+        <button type="button" class="password-eye" id="accountPasswordToggle" aria-label="Change password">
+          <svg viewBox="0 0 24 24" class="eye-icon"><g class="eye-open"><path d="M12 5C5.5 5 2 12 2 12s3.5 7 10 7 10-7 10-7-3.5-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></g><g class="eye-closed"><path d="M3.3 2.3l18.4 18.4-1.4 1.4-3-3C15.7 19.7 14 20 12 20 5.5 20 2 13 2 13s1.4-2.8 4.2-4.9L1.9 3.7l1.4-1.4zM12 8a4 4 0 013.9 4.9L9.1 6.1C9.9 8.1 10.9 8 12 8zm-4.6 1.7C6.5 10.6 5.7 11.7 5 12.9c.9 1.5 3.7 5.1 7 5.1 1 0 1.9-.2 2.7-.5l-1.9-1.9a4 4 0 01-4.9-4.9l-1.5-1z"/></g></svg>
+        </button>
+      </div>
+
+      <form id="accountChangePasswordForm" class="account-form hidden">
+        <div class="account-error hidden" id="accountPasswordError"></div>
+        <div class="field">
+          <label for="acctCurrentPassword">Current Password</label>
+          <div class="password-field">
+            <input type="password" id="acctCurrentPassword" autocomplete="current-password" required>
+            <button type="button" class="password-eye" data-toggle-password="acctCurrentPassword" aria-label="Show password">
+              <svg viewBox="0 0 24 24" class="eye-icon"><g class="eye-open"><path d="M12 5C5.5 5 2 12 2 12s3.5 7 10 7 10-7 10-7-3.5-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></g><g class="eye-closed"><path d="M3.3 2.3l18.4 18.4-1.4 1.4-3-3C15.7 19.7 14 20 12 20 5.5 20 2 13 2 13s1.4-2.8 4.2-4.9L1.9 3.7l1.4-1.4zM12 8a4 4 0 013.9 4.9L9.1 6.1C9.9 8.1 10.9 8 12 8zm-4.6 1.7C6.5 10.6 5.7 11.7 5 12.9c.9 1.5 3.7 5.1 7 5.1 1 0 1.9-.2 2.7-.5l-1.9-1.9a4 4 0 01-4.9-4.9l-1.5-1z"/></g></svg>
+            </button>
+          </div>
+        </div>
+        <div class="field">
+          <label for="acctNewPassword">New Password</label>
+          <div class="password-field">
+            <input type="password" id="acctNewPassword" autocomplete="new-password" required minlength="6">
+            <button type="button" class="password-eye" data-toggle-password="acctNewPassword" aria-label="Show password">
+              <svg viewBox="0 0 24 24" class="eye-icon"><g class="eye-open"><path d="M12 5C5.5 5 2 12 2 12s3.5 7 10 7 10-7 10-7-3.5-7-10-7zm0 11a4 4 0 110-8 4 4 0 010 8z"/></g><g class="eye-closed"><path d="M3.3 2.3l18.4 18.4-1.4 1.4-3-3C15.7 19.7 14 20 12 20 5.5 20 2 13 2 13s1.4-2.8 4.2-4.9L1.9 3.7l1.4-1.4zM12 8a4 4 0 013.9 4.9L9.1 6.1C9.9 8.1 10.9 8 12 8zm-4.6 1.7C6.5 10.6 5.7 11.7 5 12.9c.9 1.5 3.7 5.1 7 5.1 1 0 1.9-.2 2.7-.5l-1.9-1.9a4 4 0 01-4.9-4.9l-1.5-1z"/></g></svg>
+            </button>
+          </div>
+          <div class="account-hint">At least 6 characters. You'll need your current password to confirm this change.</div>
+        </div>
+        <button type="submit" class="acct-btn-primary">Update Password</button>
+      </form>
+
+      <button class="acct-btn-danger" id="accountLogoutBtn">Sign Out</button>
+    </div>
+  </div>
+</div>
+
+<main id="mainContent">
+
+  <!-- ============================================================
+       HERO
+  ============================================================= -->
+  <section class="hero" id="home">
+    <div class="hero-shards" aria-hidden="true"></div>
+
+    <div class="hero-content">
+      <p class="eyebrow reveal">FEATURED MANGA</p>
+      <h1 class="hero-title reveal">Eternity<span class="hero-title-of">of</span>Crystal</h1>
+      <p class="hero-tagline reveal">“An extraordinary journey begins in a world of crystals, kingdoms, mysteries and destiny.”</p>
+      <div class="hero-actions reveal">
+        <a href="#reader" class="btn btn-primary" data-open-reader data-manga="eternity-of-crystal" data-chapter="1">
+          <span>Read Manga</span>
+        </a>
+        <a href="#world" class="btn btn-ghost" data-nav-link>
+          <span>Explore World</span>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       MANGA GRID — "Discover Manga"
+  ============================================================= -->
+  <section class="section" id="manga">
+    <div class="section-inner">
+      <header class="section-head reveal-up">
+        <p class="section-eyebrow">The Catalog</p>
+        <h2 class="section-title">Discover Manga</h2>
+        <p class="section-desc">Every world begins with a single page. Explore the stories currently unfolding on Journey Begin.</p>
+      </header>
+
+      <div class="manga-grid" id="mangaGrid"><!-- injected by script.js --></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       LATEST CHAPTERS
+  ============================================================= -->
+  <section class="section section-alt" id="discover">
+    <div class="section-inner">
+      <header class="section-head reveal-up">
+        <p class="section-eyebrow">Fresh Ink</p>
+        <h2 class="section-title">Latest Chapters</h2>
+        <p class="section-desc">Newly released pages from across the Journey Begin catalog.</p>
+      </header>
+
+      <div class="chapter-list" id="chapterList"><!-- injected by script.js --></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       WORLD / MAP
+  ============================================================= -->
+  <section class="section" id="world">
+    <div class="section-inner">
+      <header class="section-head reveal-up">
+        <p class="section-eyebrow">Cartography</p>
+        <h2 class="section-title">Explore the World</h2>
+        <p class="section-desc">The realm of Eternity of Crystal — click the map to view it in full.</p>
+      </header>
+
+      <div class="world-map-figure reveal-up" id="worldMapFigure" tabindex="0" role="button" aria-label="View full world map">
+        <img src="" alt="World Map" id="worldMapFigureImg">
+        <span class="world-map-hint">Click to view full map</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       CHARACTERS
+  ============================================================= -->
+  <section class="section section-alt" id="characters">
+    <div class="section-inner">
+      <header class="section-head reveal-up">
+        <p class="section-eyebrow">The Bearers</p>
+        <h2 class="section-title">Meet the Characters</h2>
+        <p class="section-desc">Five souls, one destiny. Tap a card to reveal their story.</p>
+      </header>
+
+      <div class="character-grid" id="characterGrid"><!-- injected by script.js --></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       LORE
+  ============================================================= -->
+  <section class="section" id="lore">
+    <div class="section-inner">
+      <header class="section-head reveal-up">
+        <p class="section-eyebrow">Hidden Knowledge</p>
+        <h2 class="section-title">Lore &amp; Mysteries</h2>
+        <p class="section-desc">Fragments of truth gathered from the world of crystals.</p>
+      </header>
+
+      <div class="lore-accordion" id="loreAccordion"><!-- injected by script.js --></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       GALLERY
+  ============================================================= -->
+  <section class="section section-alt" id="gallery">
+    <div class="section-inner">
+      <header class="section-head reveal-up">
+        <p class="section-eyebrow">Visual Archive</p>
+        <h2 class="section-title">Gallery</h2>
+        <p class="section-desc">Manga pages, character art, concept sketches and maps.</p>
+      </header>
+
+      <div class="gallery-tabs" id="galleryTabs">
+        <button class="gallery-tab active" data-filter="all">All</button>
+        <button class="gallery-tab" data-filter="pages">Manga Pages</button>
+        <button class="gallery-tab" data-filter="characters">Character Art</button>
+        <button class="gallery-tab" data-filter="concept">Concept Art</button>
+        <button class="gallery-tab" data-filter="maps">Maps</button>
+      </div>
+
+      <div class="gallery-grid" id="galleryGrid"><!-- injected by script.js --></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       NEWS
+  ============================================================= -->
+  <section class="section" id="news">
+    <div class="section-inner">
+      <header class="section-head reveal-up">
+        <p class="section-eyebrow">The Herald</p>
+        <h2 class="section-title">Latest Updates</h2>
+        <p class="section-desc">Announcements from the Journey Begin studio.</p>
+      </header>
+
+      <div class="news-grid" id="newsGrid"><!-- injected by script.js --></div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       REVIEWS (site-wide reader ratings for Journey Begin's manga —
+       only a signed-in reader may post/edit their own review)
+  ============================================================= -->
+  <section class="section section-alt" id="reviews">
+    <div class="section-inner">
+      <header class="section-head reveal-up">
+        <p class="section-eyebrow">Reader Verdict</p>
+        <h2 class="section-title">Reviews &amp; Ratings</h2>
+        <p class="section-desc">What readers think of Journey Begin's manga, overall. Sign in to leave your own rating.</p>
+      </header>
+
+      <div class="reviews-summary" id="reviewsSummary">
+        <div class="reviews-summary-score">—</div>
+        <div class="reviews-summary-meta">
+          <span class="reviews-summary-count">Loading ratings…</span>
+        </div>
+      </div>
+      <div class="review-form-wrap" id="reviewFormWrap"><!-- injected by script.js --></div>
+      <div class="review-list" id="reviewsList"><p class="review-empty">Loading reviews…</p></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============================================================
+     FOOTER
+============================================================= -->
+<footer class="site-footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <span class="logo-mark">◈</span>
+      <span class="logo-text">JOURNEY<em>BEGIN</em></span>
+      <p class="footer-tagline">“Every story begins with a journey.”</p>
+      <div class="footer-social" id="footerSocial"><!-- injected by script.js --></div>
+    </div>
+
+    <nav class="footer-links">
+      <a href="#home" data-nav-link>Home</a>
+      <a href="#manga" data-nav-link>Manga</a>
+      <a href="#discover" data-nav-link>Discover</a>
+      <a href="#characters" data-nav-link>Characters</a>
+      <a href="#world" data-nav-link>Worlds</a>
+      <a href="#news" data-nav-link>News</a>
+      <a href="#reviews" data-nav-link>Reviews</a>
+    </nav>
+
+    <div class="footer-copy">
+      <p>© 2026 Journey Begin. All Rights Reserved.</p>
+      <p>© 2026 Vishva &amp; Mathavan. All Rights Reserved.</p>
+    </div>
+  </div>
+</footer>
+
+<!-- ============================================================
+     FLOATING SOCIAL DOCK — populated by script.js from the links
+     saved in the admin panel's Social Media screen. Hidden entirely
+     when no links are set.
+============================================================= -->
+<div class="social-dock" id="socialDock" aria-label="Social media links"><!-- injected by script.js --></div>
+
+<!-- ============================================================
+     MANGA READER (overlay, full screen)
+============================================================= -->
+<div class="reader" id="reader" aria-hidden="true">
+  <div class="reader-topbar">
+    <button class="reader-btn" id="readerClose" title="Close reader">
+      <svg viewBox="0 0 24 24"><path d="M6.4 4.98L12 10.59l5.6-5.6 1.4 1.4-5.6 5.6 5.6 5.6-1.4 1.4-5.6-5.6-5.6 5.6-1.4-1.4 5.6-5.6-5.6-5.6z"/></svg>
+    </button>
+    <div class="reader-title">
+      <span id="readerMangaTitle">Eternity of Crystal</span>
+      <span class="reader-chapter" id="readerChapterTitle">Chapter 1 — Tale of Crystals</span>
+    </div>
+    <div class="reader-controls">
+      <button class="reader-btn" id="zoomOut" title="Zoom out">−</button>
+      <span class="reader-zoom-level" id="zoomLevel">100%</span>
+      <button class="reader-btn" id="zoomIn" title="Zoom in">+</button>
+      <button class="reader-btn" id="fullscreenBtn" title="Fullscreen">
+        <svg viewBox="0 0 24 24"><path d="M4 4h6v2H6v4H4V4zm10 0h6v6h-2V6h-4V4zM4 14h2v4h4v2H4v-6zm16 0h-2v4h-4v2h6v-6z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <button class="reader-fs-exit" id="readerFsExit" title="Exit fullscreen">
+    <svg viewBox="0 0 24 24"><path d="M6.4 4.98L12 10.59l5.6-5.6 1.4 1.4-5.6 5.6 5.6 5.6-1.4 1.4-5.6-5.6-5.6 5.6-1.4-1.4 5.6-5.6-5.6-5.6z"/></svg>
+  </button>
+
+  <div class="reader-pages" id="readerPages"><!-- pages injected by script.js --></div>
+
+  <div class="reader-bottombar">
+    <button class="reader-nav-btn" id="prevChapter">← Previous Chapter</button>
+    <span class="reader-progress" id="readerProgress">Page 1</span>
+    <button class="reader-nav-btn" id="nextChapter">Next Chapter →</button>
+  </div>
+</div>
+
+<!-- ============================================================
+     LIGHTBOX (gallery fullscreen viewer)
+============================================================= -->
+<div class="lightbox" id="lightbox" aria-hidden="true">
+  <button class="lightbox-close" id="lightboxClose" aria-label="Close">&times;</button>
+  <button class="lightbox-nav lightbox-prev" id="lightboxPrev" aria-label="Previous">&#8249;</button>
+  <img src="" alt="" id="lightboxImg">
+  <button class="lightbox-nav lightbox-next" id="lightboxNext" aria-label="Next">&#8250;</button>
+  <p class="lightbox-caption" id="lightboxCaption"></p>
+</div>
+
+<!-- ============================================================
+     CHARACTER MODAL
+============================================================= -->
+<div class="modal-overlay" id="charModalOverlay">
+  <div class="modal char-modal" id="charModal">
+    <button class="icon-btn modal-close" id="charModalClose" aria-label="Close">
+      <svg viewBox="0 0 24 24"><path d="M6.4 4.98L12 10.59l5.6-5.6 1.4 1.4-5.6 5.6 5.6 5.6-1.4 1.4-5.6-5.6-5.6 5.6-1.4-1.4 5.6-5.6-5.6-5.6z"/></svg>
+    </button>
+    <div id="charModalBody"><!-- injected --></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ARC PAGE — opened via "Read Arc" on the Latest Chapters grid;
+     lists every chapter that belongs to that one arc.
+============================================================= -->
+<div class="arc-page" id="arcPage" aria-hidden="true">
+  <div class="arc-page-topbar">
+    <button class="reader-btn" id="arcPageClose" title="Back">
+      <svg viewBox="0 0 24 24"><path d="M15.5 4.5L8 12l7.5 7.5-1.4 1.4L5.2 12 14.1 3.1z"/></svg>
+    </button>
+    <div class="reader-title">
+      <span id="arcPageManga">Manga</span>
+      <span class="reader-chapter" id="arcPageName">Arc Name</span>
+    </div>
+    <div style="width:36px; flex-shrink:0;"></div>
+  </div>
+  <div class="arc-page-body">
+    <div class="chapter-grid" id="arcPageChapters"><!-- injected by script.js --></div>
+  </div>
+</div>
+
+<!-- Toast for bookmark confirmations -->
+<div class="toast" id="toast"></div>
+
+<!-- Firebase (compat SDK — works with plain <script> files, no bundler needed) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-analytics-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<!-- Motion layer: Three.js (3D background) + GSAP/ScrollTrigger (cinematic timelines & scroll animation) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="motion.js"></script>
+
+<script src="script.js"></script>
+</body>
+</html>

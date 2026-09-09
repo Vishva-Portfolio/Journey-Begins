@@ -1,0 +1,152 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
+    // The "admins" collection is how we mark which signed-in accounts are
+    // allowed to write content. Add a document with the admin's UID as the
+    // document ID (any field, e.g. { email: "you@example.com" }) from the
+    // Firebase console. Nobody can write to this collection from the client.
+    match /admins/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    // Public site content: anyone can read (so the homepage loads without
+    // logging in), only authorized admins can write.
+    match /manga/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /chapters/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    // Chapter page images live in a subcollection under each chapter doc
+    // (chapters/{docId}/pageImages/{pageIndex}) so a chapter with many/large
+    // pages never risks exceeding the 1MB document limit.
+    match /chapters/{docId}/{subcollection}/{subDocId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /characters/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /locations/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /lore/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /gallery/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /news/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Site-wide settings (World Map background image, Social Media links, etc.)
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Reader accounts: each user can manage their own public profile doc
+    // (display name/email/profile photo) used to show comment author names.
+    // photoData is a compressed data-URL string (see script.js) — capped
+    // well under the 1MB document limit.
+    match /users/{uid} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == uid
+                   && (!('photoData' in request.resource.data)
+                       || request.resource.data.photoData is string
+                       || request.resource.data.photoData == null)
+                   && (!('photoData' in request.resource.data)
+                       || request.resource.data.photoData == null
+                       || request.resource.data.photoData.size() < 900000);
+    }
+
+    // Chapter comments: anyone can read; any signed-in reader can post a
+    // comment as themselves. likedBy can be toggled by any signed-in
+    // reader (a like, not an edit). The original author can additionally
+    // edit the "text" (setting "editedAt") or delete their own comment,
+    // but only within 1 day of posting — after that only an admin can.
+    match /comments/{commentId} {
+      allow read: if true;
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 2000;
+      allow update: if isAdmin()
+                    || (request.auth != null
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy']))
+                    || (request.auth != null
+                        && request.auth.uid == resource.data.uid
+                        && request.time < resource.data.createdAt + duration.value(1, 'd')
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'editedAt'])
+                        && request.resource.data.text is string
+                        && request.resource.data.text.size() > 0
+                        && request.resource.data.text.size() <= 2000);
+      allow delete: if isAdmin()
+                    || (request.auth != null
+                        && request.auth.uid == resource.data.uid
+                        && request.time < resource.data.createdAt + duration.value(1, 'd'));
+
+      // Threaded replies under a comment — same rules as top-level comments.
+      match /replies/{replyId} {
+        allow read: if true;
+        allow create: if request.auth != null
+                      && request.resource.data.uid == request.auth.uid
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() > 0
+                      && request.resource.data.text.size() <= 1000;
+        allow update: if isAdmin()
+                      || (request.auth != null
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likedBy']))
+                      || (request.auth != null
+                          && request.auth.uid == resource.data.uid
+                          && request.time < resource.data.createdAt + duration.value(1, 'd')
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['text', 'editedAt'])
+                          && request.resource.data.text is string
+                          && request.resource.data.text.size() > 0
+                          && request.resource.data.text.size() <= 1000);
+        allow delete: if isAdmin()
+                      || (request.auth != null
+                          && request.auth.uid == resource.data.uid
+                          && request.time < resource.data.createdAt + duration.value(1, 'd'));
+      }
+    }
+
+    // Site-wide "overall manga" reviews & star ratings: anyone can read;
+    // only a signed-in reader can write, and only their own single review
+    // (the document ID is always the reviewer's own uid, so each reader
+    // can ever have at most one review on file — posting again overwrites
+    // their previous one instead of creating a duplicate). Ratings must be
+    // a whole number from 1 to 5; the written portion is optional but
+    // capped in length. The reader can update or delete their own review
+    // at any time; admins can moderate (delete) any review.
+    match /reviews/{uid} {
+      allow read: if true;
+      allow create, update: if request.auth != null
+                    && request.auth.uid == uid
+                    && request.resource.data.uid == uid
+                    && request.resource.data.rating is int
+                    && request.resource.data.rating >= 1
+                    && request.resource.data.rating <= 5
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() <= 1000;
+      allow delete: if isAdmin() || (request.auth != null && request.auth.uid == uid);
+    }
+  }
+}
