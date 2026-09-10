@@ -280,13 +280,15 @@ tbody tr:hover{ background: rgba(255,255,255,0.02); }
   .dash{ flex-direction:column; }
   .sidebar{
     width:100%; height:auto; position:sticky; top:0; z-index:20;
-    flex-direction:row; align-items:center; flex-wrap:nowrap;
+    flex-direction:row; flex-wrap:wrap; align-items:center;
+    row-gap:0.6rem;
     padding: 0.8rem 0.8rem;
     gap: 0.6rem;
   }
-  .sidebar .login-logo{ margin-bottom:0; margin-right:0.4rem; font-size:1.05rem; flex-shrink:0; }
+  .sidebar .login-logo{ order:1; margin-bottom:0; margin-right:0; font-size:1.05rem; flex-shrink:0; }
   .side-nav{
-    flex-direction:row; flex:1; flex-wrap:nowrap;
+    order:3; flex:1 1 100%; width:100%;
+    flex-direction:row; flex-wrap:nowrap;
     min-width:0;
     overflow-x:auto; -webkit-overflow-scrolling:touch;
     gap:0.35rem;
@@ -297,10 +299,14 @@ tbody tr:hover{ background: rgba(255,255,255,0.02); }
     padding: 0.5rem 0.7rem; font-size:0.85rem;
   }
   /* Sign out / view-site collapse into a compact icon-free row instead of
-     disappearing, so they stay reachable on mobile. */
+     disappearing, so they stay reachable on mobile. Pinned to the same
+     first line as the logo; the nav tabs get their own full-width line
+     below (via order + flex-basis:100% above) so they aren't squeezed
+     down to nothing. */
   .side-foot{
+    order:2; margin-left:auto;
     display:flex; flex-shrink:0; gap:0.4rem;
-    border-top:none; padding-top:0; margin-left:0.4rem;
+    border-top:none; padding-top:0;
   }
   .side-user{ display:none; }
   .side-foot a.btn, .side-foot button.btn{
