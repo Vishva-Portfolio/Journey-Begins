@@ -287,11 +287,13 @@ tbody tr:hover{ background: rgba(255,255,255,0.02); }
   .sidebar .login-logo{ margin-bottom:0; margin-right:0.4rem; font-size:1.05rem; flex-shrink:0; }
   .side-nav{
     flex-direction:row; flex:1; flex-wrap:nowrap;
+    min-width:0;
     overflow-x:auto; -webkit-overflow-scrolling:touch;
     gap:0.35rem;
   }
   .side-link{
-    white-space:nowrap; flex-shrink:0;
+    width:auto; flex-shrink:0;
+    white-space:nowrap;
     padding: 0.5rem 0.7rem; font-size:0.85rem;
   }
   /* Sign out / view-site collapse into a compact icon-free row instead of
